@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服务器安全加固工具</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; min-height: 100vh; }
+        
+        .header { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 20px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header p { opacity: 0.8; margin-top: 5px; font-size: 14px; }
+        
+        .nav { display: flex; gap: 10px; margin-top: 20px; }
+        .nav-item { padding: 10px 20px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 0.2s; border: none; color: white; font-size: 14px; }
+        .nav-item:hover { background: rgba(255,255,255,0.2); }
+        .nav-item.active { background: white; color: #1e3c72; font-weight: 600; }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .card-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
+        
+        .form-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .form-group { flex: 1; min-width: 200px; }
+        .form-group label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #2a5298; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .btn-primary { background: #2a5298; color: white; }
+        .btn-primary:hover { background: #1e3c72; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .table { width: 100%; border-collapse: collapse; }
+        .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        .table th { background: #f8f9fa; font-weight: 600; color: #555; font-size: 13px; }
+        .table tr:hover { background: #f8f9fa; }
+        
+        .tag { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .tag-success { background: #d4edda; color: #155724; }
+        .tag-warning { background: #fff3cd; color: #856404; }
+        .tag-danger { background: #f8d7da; color: #721c24; }
+        .tag-info { background: #d1ecf1; color: #0c5460; }
+        
+        .checkbox-wrapper { display: flex; align-items: center; gap: 8px; }
+        .checkbox-wrapper input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .stat-card h3 { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; color: #333; }
+        .stat-card.success .value { color: #28a745; }
+        .stat-card.warning .value { color: #ffc107; }
+        .stat-card.danger .value { color: #dc3545; }
+        
+        .progress-bar { height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin: 10px 0; }
+        .progress-bar .fill { height: 100%; background: linear-gradient(90deg, #2a5298, #1e3c72); transition: width 0.3s; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: white; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { font-size: 18px; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 20px; border-top: 1px solid #eee; display: flex; gap: 10px; justify-content: flex-end; }
+        
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state h3 { margin-bottom: 10px; color: #666; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+        
+        .result-item { padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+        .result-item.compliant, .result-item.success { background: #d4edda; }
+        .result-item.non_compliant, .result-item.failed { background: #f8d7da; }
+        .result-item.warning { background: #fff3cd; }
+        
+        .node-list { display: grid; gap: 12px; }
+        .node-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #f8f9fa; border-radius: 8px; border: 2px solid transparent; transition: all 0.2s; }
+        .node-item.selected { border-color: #2a5298; background: #e8f4fd; }
+        .node-item:hover { border-color: #2a5298; }
+        
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .status-dot.online { background: #28a745; }
+        .status-dot.offline { background: #dc3545; }
+        .status-dot.unknown { background: #6c757d; }
+        
+        .chart-container { position: relative; height: 300px; }
+        
+        .actions { display: flex; gap: 8px; }
+        
+        .loading { display: flex; align-items: center; justify-content: center; padding: 40px; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #f3f3f3; border-top: 3px solid #2a5298; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .task-category { margin-bottom: 20px; }
+        .task-category h4 { color: #333; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #2a5298; }
+        .task-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+        .task-item { padding: 12px; background: #f8f9fa; border-radius: 6px; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <h1>🛡️ 服务器安全加固工具</h1>
+            <p>批量节点管理 | 安全检查与加固 | 可视化报告</p>
+            <div class="nav">
+                <button class="nav-item" :class="{active: currentView === 'nodes'}" @click="currentView = 'nodes'">节点管理</button>
+                <button class="nav-item" :class="{active: currentView === 'execute'}" @click="currentView = 'execute'">任务执行</button>
+                <button class="nav-item" :class="{active: currentView === 'reports'}" @click="currentView = 'reports'">报告查看</button>
+            </div>
+        </div>
+        
+        <div class="container">
+            <!-- 节点管理视图 -->
+            <div v-if="currentView === 'nodes'">
+                <div class="card">
+                    <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>节点列表</span>
+                        <button class="btn btn-primary btn-sm" @click="openAddModal">+ 添加节点</button>
+                    </div>
+                    
+                    <div v-if="nodes.length === 0" class="empty-state">
+                        <h3>暂无节点</h3>
+                        <p>请添加服务器节点以开始使用</p>
+                    </div>
+                    
+                    <table v-else class="table">
+                        <thead>
+                            <tr>
+                                <th>主机地址</th>
+                                <th>端口</th>
+                                <th>用户</th>
+                                <th>认证方式</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="node in nodes" :key="node.host">
+                                <td>{{ node.host }}</td>
+                                <td>{{ node.port }}</td>
+                                <td>{{ node.user }}</td>
+                                <td><span class="tag" :class="node.auth === 'password' ? 'tag-info' : 'tag-success'">{{ node.auth === 'password' ? '密码' : '密钥' }}</span></td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="btn btn-secondary btn-sm" @click="testNode(node)">测试连接</button>
+                                        <button class="btn btn-danger btn-sm" @click="deleteNode(node.host)">删除</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- 任务执行视图 -->
+            <div v-if="currentView === 'execute'">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title">选择节点</div>
+                        <div v-if="nodes.length === 0" class="empty-state">
+                            <p>请先添加节点</p>
+                        </div>
+                        <div v-else class="node-list">
+                            <div class="checkbox-wrapper" style="margin-bottom: 16px;">
+                                <input type="checkbox" id="selectAll" v-model="selectAll" @change="toggleSelectAll">
+                                <label for="selectAll" style="font-weight: 600;">全选</label>
+                            </div>
+                            <div v-for="node in nodes" :key="node.host" 
+                                 class="node-item" 
+                                 :class="{selected: selectedHosts.includes(node.host)}"
+                                 @click="toggleNode(node.host)">
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" :checked="selectedHosts.includes(node.host)" @click.stop>
+                                    <div>
+                                        <strong>{{ node.host }}</strong>
+                                        <div style="font-size: 12px; color: #666;">{{ node.user }}@{{ node.host }}:{{ node.port }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-title">执行配置</div>
+                        
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label>执行模式</label>
+                            <select v-model="executeMode">
+                                <option value="check">检查模式 (只检查不执行)</option>
+                                <option value="exec">执行模式 (执行安全加固)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label>任务类别</label>
+                            <select v-model="selectedTask">
+                                <option value="all">全部任务</option>
+                                <option value="password">密码策略</option>
+                                <option value="system">系统安全</option>
+                                <option value="ssh">SSH加固</option>
+                                <option value="permission">文件权限</option>
+                            </select>
+                        </div>
+                        
+                        <div class="task-category" v-if="categories.length > 0">
+                            <div v-for="cat in categories" :key="cat.id" class="task-category">
+                                <h4>{{ cat.name }} ({{ cat.count }}项)</h4>
+                                <div class="task-list">
+                                    <div v-for="task in getTasksByCategory(cat.id)" :key="task.name" class="task-item">
+                                        {{ task.name }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-success" style="width: 100%; margin-top: 20px;" 
+                                :disabled="selectedHosts.length === 0 || executing"
+                                @click="executeTask">
+                            <span v-if="executing">执行中...</span>
+                            <span v-else>开始执行</span>
+                        </button>
+                        
+                        <div v-if="executing" style="margin-top: 20px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span>执行进度</span>
+                                <span>{{ currentTask.completed }}/{{ currentTask.total }}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="fill" :style="{width: progressPercent + '%'}"></div>
+                            </div>
+                            <p style="font-size: 13px; color: #666; margin-top: 10px;">
+                                正在处理: {{ currentTask.currentHost || '初始化...' }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 执行结果 -->
+                <div v-if="executeResults.length > 0" class="card" style="margin-top: 20px;">
+                    <div class="card-title">执行结果</div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>节点总数</h3>
+                            <div class="value">{{ executeResults.length }}</div>
+                        </div>
+                        <div class="stat-card success">
+                            <h3>合规/成功</h3>
+                            <div class="value">{{ successCount }}</div>
+                        </div>
+                        <div class="stat-card warning">
+                            <h3>不合规/警告</h3>
+                            <div class="value">{{ warningCount }}</div>
+                        </div>
+                        <div class="stat-card danger">
+                            <h3>失败</h3>
+                            <div class="value">{{ failedCount }}</div>
+                        </div>
+                    </div>
+                    
+                    <div v-for="result in executeResults" :key="result.host" style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <span class="status-dot" :class="result.error ? 'offline' : 'online'"></span>
+                            {{ result.host }}
+                            <span v-if="result.error" class="tag tag-danger">连接失败</span>
+                            <span v-else-if="result.summary" class="tag tag-success">合规: {{ result.summary.compliant }}/{{ result.tasks.length }}</span>
+                        </h4>
+                        
+                        <div v-if="result.tasks && result.tasks.length > 0">
+                            <div v-for="task in result.tasks" :key="task.task_name" 
+                                 class="result-item" :class="task.status">
+                                <span v-if="task.status === 'compliant' || task.status === 'success'">✓</span>
+                                <span v-else-if="task.status === 'non_compliant' || task.status === 'failed'">✗</span>
+                                <span v-else>?</span>
+                                <div style="flex: 1;">
+                                    <strong>{{ task.task_name }}</strong>
+                                    <div style="font-size: 12px; color: #666;">{{ task.message || task.output || task.error }}</div>
+                                </div>
+                                <button v-if="task.original_value || task.rollback_available" class="btn btn-warning btn-sm" @click="openRollbackModal(result.host, task.task_name, task.original_value)" style="font-size: 11px; padding: 4px 8px;">回滚</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 报告视图 -->
+            <div v-if="currentView === 'reports'">
+                <div class="card">
+                    <div class="card-title">历史报告</div>
+                    
+                    <div v-if="reports.length === 0" class="empty-state">
+                        <h3>暂无报告</h3>
+                        <p>执行任务后将自动生成报告</p>
+                    </div>
+                    
+                    <table v-else class="table">
+                        <thead>
+                            <tr>
+                                <th>报告ID</th>
+                                <th>模式</th>
+                                <th>任务类别</th>
+                                <th>节点数</th>
+                                <th>结果统计</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="report in reports" :key="report.id">
+                                <td>{{ report.id }}</td>
+                                <td><span class="tag" :class="report.mode === 'check' ? 'tag-info' : 'tag-success'">{{ report.mode === 'check' ? '检查' : '执行' }}</span></td>
+                                <td>{{ report.task }}</td>
+                                <td>{{ report.nodes_count }}</td>
+                                <td>
+                                    <span class="tag tag-success" v-if="report.mode === 'check'">合规: {{ report.compliant }}</span>
+                                    <span class="tag tag-success" v-else>成功: {{ report.success }}</span>
+                                    <span class="tag tag-danger" style="margin-left: 4px;">失败: {{ report.failed }}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" @click="viewReport(report.id)">查看详情</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 报告详情弹窗 -->
+                <div v-if="showReportModal" class="modal-overlay" @click.self="showReportModal = false">
+                    <div class="modal" style="max-width: 900px;">
+                        <div class="modal-header">
+                            <h2>报告详情</h2>
+                            <button class="btn btn-secondary btn-sm" @click="showReportModal = false">关闭</button>
+                        </div>
+                        <div class="modal-body">
+                            <div v-if="currentReport" class="stats-grid">
+                                <div class="stat-card">
+                                    <h3>节点总数</h3>
+                                    <div class="value">{{ currentReport.results.length }}</div>
+                                </div>
+                                <div class="stat-card success">
+                                    <h3>合规/成功</h3>
+                                    <div class="value">{{ reportSuccessCount }}</div>
+                                </div>
+                                <div class="stat-card danger">
+                                    <h3>不合规/失败</h3>
+                                    <div class="value">{{ reportFailedCount }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid-2" v-if="currentReport">
+                                <div class="chart-container">
+                                    <canvas ref="pieChart"></canvas>
+                                </div>
+                                <div v-for="result in currentReport.results" :key="result.host">
+                                    <h4 style="margin-bottom: 12px;">{{ result.host }}</h4>
+                                    <div v-for="task in result.tasks" :key="task.task_name" 
+                                         class="result-item" :class="task.status">
+                                        <span>{{ task.status === 'compliant' || task.status === 'success' ? '✓' : '✗' }}</span>
+                                        <span>{{ task.task_name }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 添加节点弹窗 -->
+        <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
+            <div class="modal" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2>添加节点</h2>
+                    <button class="btn btn-secondary btn-sm" @click="showAddModal = false">×</button>
+                </div>
+                <div class="modal-body">
+                    <div style="margin-bottom: 16px;">
+                        <button class="btn btn-sm" :class="addMode === 'single' ? 'btn-primary' : 'btn-secondary'" @click="addMode = 'single'" style="margin-right: 8px;">单个添加</button>
+                        <button class="btn btn-sm" :class="addMode === 'batch' ? 'btn-primary' : 'btn-secondary'" @click="addMode = 'batch'">批量导入</button>
+                    </div>
+                    
+                    <!-- 单个添加模式 -->
+                    <div v-if="addMode === 'single'">
+                        <div class="form-group">
+                            <label>主机地址</label>
+                            <input type="text" v-model="newNode.host" placeholder="192.168.1.100">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>端口</label>
+                                <input type="number" v-model="newNode.port" placeholder="22">
+                            </div>
+                            <div class="form-group">
+                                <label>用户名</label>
+                                <input type="text" v-model="newNode.user" placeholder="root">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>认证方式</label>
+                            <select v-model="newNode.auth">
+                                <option value="key">SSH密钥</option>
+                                <option value="password">密码</option>
+                            </select>
+                        </div>
+                        <div v-if="newNode.auth === 'key'" class="form-group">
+                            <label>密钥路径</label>
+                            <input type="text" v-model="newNode.key_path" placeholder="~/.ssh/id_rsa">
+                        </div>
+                        <div v-if="newNode.auth === 'password'" class="form-group">
+                            <label>密码</label>
+                            <input type="password" v-model="newNode.password" placeholder="请输入密码">
+                        </div>
+                    </div>
+                    
+                    <!-- 批量导入模式 -->
+                    <div v-if="addMode === 'batch'">
+                        <div class="form-group">
+                            <label>批量导入（每行一个节点，格式：主机地址:端口:用户名:认证方式:密码/密钥路径）</label>
+                            <textarea v-model="batchNodes" placeholder="192.168.1.10:22:root:key:~/.ssh/id_rsa
+192.168.1.11:22:root:password:123456
+192.168.1.12:22:admin:password:pass123" rows="8" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; font-size: 13px;"></textarea>
+                        </div>
+                        <div style="font-size: 12px; color: #666; margin-top: 8px;">
+                            <p>格式说明：</p>
+                            <p>- 主机地址:端口:用户名:认证方式:密码</p>
+                            <p>- 认证方式：key（密钥）或 password（密码）</p>
+                            <p>- 示例：192.168.1.10:22:root:key:~/.ssh/id_rsa</p>
+                            <p>- 示例：192.168.1.11:22:root:password:123456</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @click="showAddModal = false">取消</button>
+                    <button v-if="addMode === 'single'" class="btn btn-primary" @click="addNode">添加</button>
+                    <button v-if="addMode === 'batch'" class="btn btn-primary" @click="addBatchNodes">批量导入</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 回滚弹窗 -->
+        <div v-if="showRollbackModal" class="modal-overlay" @click.self="showRollbackModal = false">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>回滚任务</h2>
+                    <button class="btn btn-secondary btn-sm" @click="showRollbackModal = false">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>主机</label>
+                        <input type="text" v-model="rollbackData.host" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>任务名称</label>
+                        <input type="text" v-model="rollbackData.task_name" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>原始值</label>
+                        <input type="text" v-model="rollbackData.original_value" placeholder="请输入回滚到的原始值">
+                    </div>
+                    <div class="form-group">
+                        <label>SSH密码（如与节点配置不同）</label>
+                        <input type="password" v-model="rollbackData.password" placeholder="可选">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @click="showRollbackModal = false">取消</button>
+                    <button class="btn btn-warning" @click="doRollback">确认回滚</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+        
+        createApp({
+            setup() {
+                const currentView = ref('nodes');
+                const nodes = ref([]);
+                const categories = ref([]);
+                const tasks = ref([]);
+                const reports = ref([]);
+                
+                const showAddModal = ref(false);
+                const showReportModal = ref(false);
+                const newNode = ref({ host: '', port: 22, user: 'root', auth: 'key', key_path: '~/.ssh/id_rsa', password: '', test_password: '' });
+                
+                const selectedHosts = ref([]);
+                const selectAll = ref(false);
+                const executeMode = ref('check');
+                const selectedTask = ref('all');
+                
+                const executing = ref(false);
+                const currentTask = ref({ id: '', completed: 0, total: 0, currentHost: '' });
+                const executeResults = ref([]);
+                
+                const currentReport = ref(null);
+                const pieChart = ref(null);
+                
+                const showRollbackModal = ref(false);
+                const rollbackData = ref({ host: '', task_name: '', original_value: '', password: '' });
+                
+                const addMode = ref('single');
+                const batchNodes = ref('');
+                
+                const openAddModal = () => {
+                    addMode.value = 'single';
+                    batchNodes.value = '';
+                    newNode.value = { host: '', port: 22, user: 'root', auth: 'key', key_path: '~/.ssh/id_rsa', password: '', test_password: '' };
+                    showAddModal.value = true;
+                };
+                
+                const api = axios.create({ baseURL: '' });
+                
+                const loadNodes = async () => {
+                    try {
+                        const res = await api.get('/api/nodes');
+                        if (res.data.success) {
+                            nodes.value = res.data.data;
+                        }
+                    } catch (e) {
+                        console.error('Failed to load nodes:', e);
+                    }
+                };
+                
+                const loadTasks = async () => {
+                    try {
+                        const res = await api.get('/api/tasks');
+                        if (res.data.success) {
+                            tasks.value = res.data.data;
+                            categories.value = res.data.categories;
+                        }
+                    } catch (e) {
+                        console.error('Failed to load tasks:', e);
+                    }
+                };
+                
+                const loadReports = async () => {
+                    try {
+                        const res = await api.get('/api/reports');
+                        if (res.data.success) {
+                            reports.value = res.data.data;
+                        }
+                    } catch (e) {
+                        console.error('Failed to load reports:', e);
+                    }
+                };
+                
+                const toggleSelectAll = () => {
+                    if (selectAll.value) {
+                        selectedHosts.value = nodes.value.map(n => n.host);
+                    } else {
+                        selectedHosts.value = [];
+                    }
+                };
+                
+                const toggleNode = (host) => {
+                    const idx = selectedHosts.value.indexOf(host);
+                    if (idx >= 0) {
+                        selectedHosts.value.splice(idx, 1);
+                    } else {
+                        selectedHosts.value.push(host);
+                    }
+                    selectAll.value = selectedHosts.value.length === nodes.value.length;
+                };
+                
+                const getTasksByCategory = (catId) => {
+                    return tasks.value.filter(t => t.category === catId);
+                };
+                
+                const addNode = async () => {
+                    try {
+                        const res = await api.post('/api/nodes', newNode.value);
+                        if (res.data.success) {
+                            showAddModal.value = false;
+                            newNode.value = { host: '', port: 22, user: 'root', auth: 'key', key_path: '~/.ssh/id_rsa', password: '', test_password: '' };
+                            loadNodes();
+                        } else {
+                            alert('添加失败: ' + res.data.error);
+                        }
+                    } catch (e) {
+                        alert('添加失败: ' + e.message);
+                    }
+                };
+                
+                const addBatchNodes = async () => {
+                    if (!batchNodes.value.trim()) {
+                        alert('请输入节点信息');
+                        return;
+                    }
+                    
+                    const lines = batchNodes.value.trim().split('\n');
+                    let successCount = 0;
+                    let failCount = 0;
+                    const errors = [];
+                    
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        
+                        const parts = line.trim().split(':');
+                        if (parts.length < 4) {
+                            failCount++;
+                            errors.push(`格式错误: ${line}`);
+                            continue;
+                        }
+                        
+                        const [host, port, user, auth, ...rest] = parts;
+                        const credential = rest.join(':');
+                        
+                        const node = {
+                            host: host.trim(),
+                            port: parseInt(port) || 22,
+                            user: user.trim() || 'root',
+                            auth: auth.trim() || 'key',
+                        };
+                        
+                        if (node.auth === 'password') {
+                            node.password = credential.trim();
+                        } else {
+                            node.key_path = credential.trim() || '~/.ssh/id_rsa';
+                        }
+                        
+                        try {
+                            const res = await api.post('/api/nodes', node);
+                            if (res.data.success) {
+                                successCount++;
+                            } else {
+                                failCount++;
+                                errors.push(`${host}: ${res.data.error}`);
+                            }
+                        } catch (e) {
+                            failCount++;
+                            errors.push(`${host}: ${e.message}`);
+                        }
+                    }
+                    
+                    showAddModal.value = false;
+                    batchNodes.value = '';
+                    loadNodes();
+                    
+                    let msg = `成功导入 ${successCount} 个节点`;
+                    if (failCount > 0) {
+                        msg += `，失败 ${failCount} 个`;
+                    }
+                    if (errors.length > 0) {
+                        msg += '\n' + errors.slice(0, 5).join('\n');
+                        if (errors.length > 5) msg += '\n...';
+                    }
+                    alert(msg);
+                };
+                
+                const deleteNode = async (host) => {
+                    if (!confirm('确定要删除节点 ' + host + ' 吗?')) return;
+                    try {
+                        await api.delete('/api/nodes/' + host);
+                        loadNodes();
+                    } catch (e) {
+                        alert('删除失败: ' + e.message);
+                    }
+                };
+                
+                const testNode = async (node) => {
+                    const password = prompt('请输入连接密码:', node.password || '');
+                    if (password === null) return;
+                    try {
+                        const res = await api.post('/api/nodes/' + node.host + '/test', { password });
+                        if (res.data.success) {
+                            alert('连接成功!');
+                        } else {
+                            alert('连接失败: ' + res.data.message);
+                        }
+                    } catch (e) {
+                        alert('测试失败: ' + e.message);
+                    }
+                };
+                
+                const executeTask = async () => {
+                    if (selectedHosts.value.length === 0) {
+                        alert('请选择至少一个节点');
+                        return;
+                    }
+                    
+                    executing.value = true;
+                    currentTask.value = { completed: 0, total: selectedHosts.value.length, currentHost: '' };
+                    
+                    try {
+                        const passwords = {};
+                        for (const host of selectedHosts.value) {
+                            const node = nodes.value.find(n => n.host === host);
+                            if (node && node.auth === 'password') {
+                                const pwd = prompt(`请输入节点 ${host} 的密码:`);
+                                if (pwd === null) continue;
+                                passwords[host] = pwd;
+                            }
+                        }
+                        
+                        const res = await api.post('/api/execute', {
+                            mode: executeMode.value,
+                            task: selectedTask.value,
+                            hosts: selectedHosts.value,
+                            passwords
+                        });
+                        
+                        if (res.data.success) {
+                            pollTaskStatus(res.data.task_id);
+                        } else {
+                            alert('执行失败: ' + res.data.error);
+                            executing.value = false;
+                        }
+                    } catch (e) {
+                        alert('执行失败: ' + e.message);
+                        executing.value = false;
+                    }
+                };
+                
+                const pollTaskStatus = async (taskId) => {
+                    const poll = async () => {
+                        try {
+                            const res = await api.get('/api/tasks/' + taskId);
+                            if (res.data.success) {
+                                const data = res.data.data;
+                                currentTask.value.completed = data.completed;
+                                currentTask.value.total = data.total;
+                                currentTask.value.currentHost = data.results.length > 0 ? data.results[data.results.length - 1].host : '';
+                                executeResults.value = data.results;
+                                
+                                if (data.status === 'completed') {
+                                    executing.value = false;
+                                    loadReports();
+                                } else if (data.status === 'running') {
+                                    setTimeout(poll, 2000);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Poll error:', e);
+                            setTimeout(poll, 2000);
+                        }
+                    };
+                    poll();
+                };
+                
+                const viewReport = async (reportId) => {
+                    try {
+                        const res = await api.get('/api/reports/' + reportId);
+                        if (res.data.success) {
+                            currentReport.value = res.data.data;
+                            showReportModal.value = true;
+                            nextTick(() => {
+                                renderChart();
+                            });
+                        }
+                    } catch (e) {
+                        alert('加载报告失败: ' + e.message);
+                    }
+                };
+                
+                const openRollbackModal = (host, task_name, original_value) => {
+                    rollbackData.value = { host, task_name, original_value: original_value || '', password: '' };
+                    showRollbackModal.value = true;
+                };
+                
+                const doRollback = async () => {
+                    try {
+                        const password = rollbackData.value.password || nodes.value.find(n => n.host === rollbackData.value.host)?.password;
+                        const res = await api.post('/api/rollback', {
+                            host: rollbackData.value.host,
+                            task_name: rollbackData.value.task_name,
+                            original_value: rollbackData.value.original_value,
+                            password
+                        });
+                        if (res.data.success) {
+                            alert('回滚成功!');
+                            showRollbackModal.value = false;
+                        } else {
+                            alert('回滚失败: ' + res.data.message);
+                        }
+                    } catch (e) {
+                        alert('回滚失败: ' + e.message);
+                    }
+                };
+                
+                const renderChart = () => {
+                    if (!currentReport.value) return;
+                    
+                    const ctx = pieChart.value?.getContext('2d');
+                    if (!ctx) return;
+                    
+                    let compliant = 0, failed = 0;
+                    for (const r of currentReport.value.results) {
+                        for (const t of r.tasks) {
+                            if (t.status === 'compliant' || t.status === 'success') compliant++;
+                            else if (t.status === 'non_compliant' || t.status === 'failed') failed++;
+                        }
+                    }
+                    
+                    if (pieChart.value?.chart) {
+                        pieChart.value.chart.destroy();
+                    }
+                    
+                    pieChart.value = { chart: new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: ['合规/成功', '不合规/失败'],
+                            datasets: [{
+                                data: [compliant, failed],
+                                backgroundColor: ['#28a745', '#dc3545']
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    })};
+                };
+                
+                const progressPercent = computed(() => {
+                    if (currentTask.value.total === 0) return 0;
+                    return Math.round(currentTask.value.completed / currentTask.value.total * 100);
+                });
+                
+                const successCount = computed(() => {
+                    return executeResults.value.reduce((sum, r) => {
+                        if (r.summary) return sum + (r.summary.compliant || 0);
+                        return sum + r.tasks.filter(t => t.status === 'success').length;
+                    }, 0);
+                });
+                
+                const warningCount = computed(() => {
+                    return executeResults.value.reduce((sum, r) => {
+                        return sum + r.tasks.filter(t => t.status === 'warning').length;
+                    }, 0);
+                });
+                
+                const failedCount = computed(() => {
+                    return executeResults.value.reduce((sum, r) => {
+                        if (r.summary) return sum + (r.summary.non_compliant || 0);
+                        return sum + r.tasks.filter(t => t.status === 'failed').length;
+                    }, 0);
+                });
+                
+                const reportSuccessCount = computed(() => {
+                    if (!currentReport.value) return 0;
+                    return currentReport.value.results.reduce((sum, r) => {
+                        return sum + r.tasks.filter(t => t.status === 'compliant' || t.status === 'success').length;
+                    }, 0);
+                });
+                
+                const reportFailedCount = computed(() => {
+                    if (!currentReport.value) return 0;
+                    return currentReport.value.results.reduce((sum, r) => {
+                        return sum + r.tasks.filter(t => t.status === 'non_compliant' || t.status === 'failed').length;
+                    }, 0);
+                });
+                
+                onMounted(() => {
+                    loadNodes();
+                    loadTasks();
+                    loadReports();
+                });
+                
+                return {
+                    currentView, nodes, categories, tasks, reports,
+                    showAddModal, showReportModal, newNode,
+                    selectedHosts, selectAll, executeMode, selectedTask,
+                    executing, currentTask, executeResults,
+                    currentReport, pieChart,
+                    showRollbackModal, rollbackData,
+                    addMode, batchNodes,
+                    progressPercent, successCount, warningCount, failedCount,
+                    reportSuccessCount, reportFailedCount,
+                    toggleSelectAll, toggleNode, getTasksByCategory,
+                    openAddModal, addNode, addBatchNodes, deleteNode, testNode, executeTask, viewReport,
+                    openRollbackModal, doRollback
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

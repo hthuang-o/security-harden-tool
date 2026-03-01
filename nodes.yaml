@@ -1,35 +1,11 @@
-# 节点配置示例
-
-# 方式1: 使用SSH密钥认证
-#nodes:
-#  - host: 192.168.1.10
-#    port: 22
-#    user: root
-#    auth: key
-#    key_path: ~/.ssh/id_rsa
-    # passphrase: xxxx  # 可选
-    
-#  - host: 192.168.1.11
-#    port: 22
-#    user: admin
-#    auth: key
-#    key_path: /path/to/private_key
-
-# 方式2: 使用密码认证
- nodes:
-   - host: 192.168.81.138
-     port: 22
-     user: root
-     auth: password
-     password: '123456'
-
-# 方式3: 混合使用
-# nodes:
-#   - host: 192.168.1.10
-#     user: root
-#     auth: key
-#   
-#   - host: 192.168.1.20
-#     user: admin
-#     auth: password
-#     password: secret
+nodes:
+- auth: password
+  host: 192.168.81.138
+  password: '123456'
+  port: 22
+  user: root
+- auth: password
+  host: 192.168.81.20
+  password: '123456'
+  port: 22
+  user: root
